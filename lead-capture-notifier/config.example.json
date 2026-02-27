@@ -1,0 +1,9 @@
+{
+  "google_sheet_id": "YOUR_SPREADSHEET_ID",
+  "sheet_name": "Leads",
+  "notification_email": "sales@yourdomain.com",
+  "slack_channel": "#leads",
+  "webhook_path": "lead-capture",
+  "notify_channels": ["email", "slack"],
+  "required_fields": ["name", "email"]
+}

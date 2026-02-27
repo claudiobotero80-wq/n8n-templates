@@ -1,0 +1,74 @@
+{
+  "name": "Lead Capture Notifier",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "lead-capture", "responseMode": "lastNode", "options": {}},
+      "id": "webhook-lead",
+      "name": "Webhook - Form Submission",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const lead = $input.item.json.body || $input.item.json;\nconst now = new Date().toISOString();\nreturn [{json: {\n  name: lead.name || lead.full_name || 'Unknown',\n  email: lead.email || '',\n  phone: lead.phone || '',\n  company: lead.company || '',\n  message: lead.message || lead.notes || '',\n  source: lead.source || lead.utm_source || 'direct',\n  timestamp: now,\n  row: [lead.name || '', lead.email || '', lead.phone || '', lead.company || '', lead.message || '', lead.source || 'direct', now]\n}}];"
+      },
+      "id": "parse-lead",
+      "name": "Parse Lead Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {"value": "YOUR_SPREADSHEET_ID"},
+        "sheetName": "Leads",
+        "columns": {"mappingMode": "autoMapInputData"}
+      },
+      "id": "google-sheets",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [690, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "leads@yourdomain.com",
+        "toEmail": "sales@yourdomain.com",
+        "subject": "=🔥 New Lead: {{ $json.name }} ({{ $json.source }})",
+        "html": "=<h2>New Lead Captured!</h2><p><strong>Name:</strong> {{ $json.name }}</p><p><strong>Email:</strong> {{ $json.email }}</p><p><strong>Phone:</strong> {{ $json.phone }}</p><p><strong>Company:</strong> {{ $json.company }}</p><p><strong>Message:</strong> {{ $json.message }}</p><p><strong>Source:</strong> {{ $json.source }}</p><p><em>{{ $json.timestamp }}</em></p>"
+      },
+      "id": "email-notify",
+      "name": "Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [690, 400]
+    },
+    {
+      "parameters": {
+        "channel": "#leads",
+        "text": "=🔥 *New Lead!*\n*Name:* {{ $json.name }}\n*Email:* {{ $json.email }}\n*Company:* {{ $json.company }}\n*Source:* {{ $json.source }}\n*Message:* {{ $json.message }}"
+      },
+      "id": "slack-notify",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [690, 600]
+    },
+    {
+      "parameters": {"respondWith": "json", "responseBody": "={\"status\": \"ok\", \"message\": \"Lead captured\"}"},
+      "id": "respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [910, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Form Submission": {"main": [[{"node": "Parse Lead Data", "type": "main", "index": 0}]]},
+    "Parse Lead Data": {"main": [[{"node": "Save to Google Sheets", "type": "main", "index": 0}, {"node": "Email Notification", "type": "main", "index": 0}, {"node": "Slack Notification", "type": "main", "index": 0}]]},
+    "Email Notification": {"main": [[{"node": "Respond OK", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "tags": [{"name": "leads"}, {"name": "crm"}, {"name": "notifications"}]
+}

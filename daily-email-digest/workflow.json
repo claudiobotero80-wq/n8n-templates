@@ -1,0 +1,51 @@
+{
+  "name": "Daily Email Digest",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"triggerAtHour": 8}]}},
+      "id": "cron-trigger",
+      "name": "Daily Trigger (8 AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {"url": "={{ $json.feed_url }}", "options": {}},
+      "id": "rss-fetch",
+      "name": "Fetch RSS Feeds",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Read feeds from config\nconst config = {\n  feeds: [\n    {name: 'TechCrunch', url: 'https://techcrunch.com/feed/'},\n    {name: 'Hacker News', url: 'https://hnrss.org/frontpage'},\n    {name: 'Product Hunt', url: 'https://www.producthunt.com/feed'}\n  ],\n  max_items_per_feed: 5,\n  recipient_email: 'you@example.com',\n  digest_title: 'Your Daily Digest'\n};\n\nconst items = $input.all();\nlet html = '<h1>' + config.digest_title + '</h1>';\nhtml += '<p>Here are today\\'s top stories:</p><hr>';\n\nlet count = 0;\nfor (const item of items) {\n  if (count >= config.max_items_per_feed * config.feeds.length) break;\n  html += '<h3><a href=\"' + (item.json.link || '#') + '\">' + (item.json.title || 'No title') + '</a></h3>';\n  html += '<p>' + (item.json.contentSnippet || item.json.description || '').substring(0, 200) + '...</p><hr>';\n  count++;\n}\n\nreturn [{json: {html, subject: config.digest_title + ' - ' + new Date().toLocaleDateString(), to: config.recipient_email}}];"
+      },
+      "id": "format-digest",
+      "name": "Format Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "digest@yourdomain.com",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}"
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [910, 300]
+    }
+  ],
+  "connections": {
+    "Daily Trigger (8 AM)": {"main": [[{"node": "Fetch RSS Feeds", "type": "main", "index": 0}]]},
+    "Fetch RSS Feeds": {"main": [[{"node": "Format Digest", "type": "main", "index": 0}]]},
+    "Format Digest": {"main": [[{"node": "Send Email", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "tags": [{"name": "email"}, {"name": "digest"}, {"name": "rss"}]
+}

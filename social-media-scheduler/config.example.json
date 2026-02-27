@@ -1,0 +1,8 @@
+{
+  "platforms": ["twitter", "linkedin"],
+  "default_hashtags": ["automation", "n8n"],
+  "max_twitter_chars": 280,
+  "webhook_path": "schedule-post",
+  "twitter_credentials": "your-twitter-oauth-credential-name",
+  "linkedin_credentials": "your-linkedin-oauth-credential-name"
+}

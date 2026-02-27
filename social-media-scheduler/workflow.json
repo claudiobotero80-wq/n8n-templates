@@ -1,0 +1,73 @@
+{
+  "name": "Social Media Scheduler",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "schedule-post", "responseMode": "responseNode", "options": {}},
+      "id": "webhook-post",
+      "name": "Webhook - Schedule Post",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const body = $input.item.json.body || $input.item.json;\nconst post = {\n  content: body.content || body.text || '',\n  platforms: body.platforms || ['twitter', 'linkedin'],\n  scheduled_at: body.scheduled_at || body.date || new Date().toISOString(),\n  image_url: body.image_url || body.media || null,\n  hashtags: body.hashtags || [],\n  link: body.link || body.url || null\n};\n\nlet fullText = post.content;\nif (post.hashtags.length > 0) fullText += '\\n\\n' + post.hashtags.map(h => '#' + h).join(' ');\nif (post.link) fullText += '\\n\\n' + post.link;\n\npost.full_text = fullText;\npost.twitter_text = fullText.substring(0, 280);\npost.linkedin_text = fullText;\n\nreturn [{json: post}];"
+      },
+      "id": "parse-post",
+      "name": "Parse & Format Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.twitter_text }}",
+        "additionalFields": {}
+      },
+      "id": "twitter-post",
+      "name": "Post to Twitter/X",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [690, 200]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.linkedin_text }}",
+        "visibility": "PUBLIC",
+        "additionalFields": {}
+      },
+      "id": "linkedin-post",
+      "name": "Post to LinkedIn",
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [690, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{json: {status: 'posted', platforms: $input.item.json.platforms, content_preview: $input.item.json.full_text.substring(0, 100), posted_at: new Date().toISOString()}}];"
+      },
+      "id": "log-result",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {"respondWith": "json", "responseBody": "={{ JSON.stringify({status: 'scheduled', platforms: $json.platforms}) }}"},
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1130, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Schedule Post": {"main": [[{"node": "Parse & Format Post", "type": "main", "index": 0}]]},
+    "Parse & Format Post": {"main": [[{"node": "Post to Twitter/X", "type": "main", "index": 0}, {"node": "Post to LinkedIn", "type": "main", "index": 0}]]},
+    "Post to Twitter/X": {"main": [[{"node": "Log Result", "type": "main", "index": 0}]]},
+    "Post to LinkedIn": {"main": [[{"node": "Log Result", "type": "main", "index": 0}]]},
+    "Log Result": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "tags": [{"name": "social-media"}, {"name": "scheduler"}, {"name": "marketing"}]
+}

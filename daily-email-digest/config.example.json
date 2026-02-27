@@ -1,0 +1,12 @@
+{
+  "feeds": [
+    {"name": "TechCrunch", "url": "https://techcrunch.com/feed/"},
+    {"name": "Hacker News", "url": "https://hnrss.org/frontpage"},
+    {"name": "Product Hunt", "url": "https://www.producthunt.com/feed"}
+  ],
+  "max_items_per_feed": 5,
+  "recipient_email": "you@example.com",
+  "digest_title": "Your Daily Digest",
+  "send_time_hour": 8,
+  "timezone": "America/New_York"
+}
